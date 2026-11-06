@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Registro Rápido</title>
+<style>
+:root{--bg:#f4f6f8;--sf:#fff;--tx:#17212b;--mu:#5d6b79;--bd:#d5dce3;--ac:#115368;--ac2:#e3f0f4;--on:#fff;--wr:#b45309;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161c;--sf:#192129;--tx:#e8eef3;--mu:#93a1ae;--bd:#2c3843;--ac:#5fb3cc;--ac2:#1d3440;--on:#0b1a20;--wr:#f0a95b;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10161c;--sf:#192129;--tx:#e8eef3;--mu:#93a1ae;--bd:#2c3843;--ac:#5fb3cc;--ac2:#1d3440;--on:#0b1a20;--wr:#f0a95b;color-scheme:dark}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+#app{display:grid;grid-template-columns:1.1fr 1fr;gap:12px;height:100%;padding:12px;box-sizing:border-box}
+.col{display:flex;flex-direction:column;min-height:0;gap:10px}
+.panel{background:var(--sf);border:1px solid var(--bd);border-radius:10px;padding:10px}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--sf);color:var(--tx);border-radius:8px;padding:5px 11px}
+button.pri,.chip.on{background:var(--ac);color:var(--on);border-color:var(--ac)}
+.chip{border-radius:16px}.chip.add{border-style:dashed;color:var(--mu)}.chip.ed::after{content:" \00b7"}
+.sm{font-size:12px;padding:3px 9px}.danger{color:var(--wr)}
+#tabs,.wrap{display:flex;flex-wrap:wrap;gap:6px}
+.lab{font-size:12px;color:var(--mu);margin:12px 0 5px;font-weight:600;display:flex;gap:8px;align-items:center}
+.bar{display:flex;gap:6px;align-items:center}.bar b{flex:1;font-size:15px}
+.regs{overflow:auto;display:flex;flex-direction:column;gap:10px;flex:1}
+.hd{display:flex;gap:6px;align-items:center;margin-bottom:6px}.hd b{flex:1}
+.area{border:1px solid var(--bd);border-radius:8px;padding:8px;min-height:64px;line-height:1.7;background:var(--bg)}
+.area[data-empty]::before{content:"Selecione botões ou use “+ texto livre”.";color:var(--mu)}
+.b{outline:none;border-radius:4px;padding:1px 3px;margin-right:2px;white-space:pre-wrap}
+.b:focus{background:var(--ac2)}.b.nl{display:block}
+.b:empty{display:inline-block;min-width:3em;border-bottom:1px dashed var(--bd)}
+.plus{opacity:0;border:0;background:none;padding:0 4px;color:var(--mu)}.area:hover .plus{opacity:.8}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--sf);color:var(--tx);padding:16px;min-width:380px}
+dialog::backdrop{background:rgba(0,0,0,.4)}dialog h3{margin:0 0 6px;font-size:15px}
+label{display:block;margin:8px 0;font-size:12px;color:var(--mu)}
+input:not([type=checkbox]),textarea,select{display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:6px 8px;border:1px solid var(--bd);border-radius:6px;background:var(--bg);color:var(--tx);font:inherit}
+.act{display:flex;flex-direction:row-reverse;gap:8px;margin-top:12px}
+.hint{font-size:12px;color:var(--ac);background:var(--ac2);border-radius:8px;padding:6px 10px}
+@media(max-width:900px){#app{grid-template-columns:1fr;height:auto}}
+</style></head><body>
+<div id="app">
+<div class="col"><div class="bar"><b>Categorias</b><button id="ed" class="sm">Personalizar botões</button></div><div class="panel"><div id="tabs"></div></div><div class="panel" id="rows" style="flex:1;overflow:auto"></div></div>
+<div class="col"><div class="bar"><b>Registro</b><button id="cfgP" class="sm">Partes</button><button id="clr" class="sm">Limpar registro</button><button id="rst" class="sm">Restaurar padrão</button></div><div class="regs" id="regs"></div></div>
+</div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const mk=(c,t,f,p)=>{const e=document.createElement('button');e.className=c;e.textContent=t;e.onclick=f;p.append(e);return e};
+const el=(c,p)=>{const e=document.createElement('div');e.className=c;p&&p.append(e);return e};
+const SEP=[['sp','espaço'],['nl','quebra de linha'],['sc','ponto e vírgula']],SM={sp:' ',nl:'\n',sc:'; '};
+let n=0;const U=()=>'i'+n++,UU=()=>'u'+Math.random().toString(36).slice(2,9);
+const def=()=>{n=0;const B=(l,p,t)=>({id:U(),label:l,part:'p'+p,text:t}),L=(l,s,b)=>({id:U(),label:l,single:s,btns:b}),C=(nm,r)=>({id:U(),name:nm,rows:r});
+return{parts:['Subjetivo','Objetivo','Avaliação','Plano'].map((x,i)=>({id:'p'+i,name:x,sep:'sp'})),cats:[
+C('Geral',[L('Tipo de consulta',1,[B('Primeira consulta',0,'Primeira consulta na unidade.'),B('Retorno',0,'Retorna para reavaliação.')]),L('Queixa',0,[B('Sem queixas',0,'Nega queixas no momento.'),B('Febre',0,'Refere febre há {dias} dias.'),B('Tosse',0,'Refere tosse há {dias} dias.')]),L('Exame físico',0,[B('BEG',1,'Bom estado geral, corado, hidratado e afebril.'),B('Sinais vitais',1,'PA {PAS} x {PAD} mmHg, FC {FC} bpm, T {temperatura} °C.')])]),
+C('Recém-nascido',[L('Tipo de parto',1,[B('Normal',0,'O parto foi normal.'),B('Cesárea',0,'O parto foi cesárea.')]),L('Aleitamento',1,[B('Exclusivo',0,'Em aleitamento materno exclusivo.'),B('Misto',0,'Em aleitamento misto.'),B('Fórmula',0,'Em uso de fórmula infantil.')]),L('Triagens',0,[B('Teste do pezinho',0,'Teste do pezinho realizado.'),B('Antropometria',1,'Peso {peso} g, comprimento {comprimento} cm, PC {PC} cm.')])]),
+C('Gestante',[L('Gestação',0,[B('IG e DUM',0,'Gestante com IG de {semanas} semanas, DUM {DUM}.')]),L('Movimentação fetal',1,[B('Presente',0,'Refere movimentação fetal presente.'),B('Diminuída',0,'Refere movimentação fetal diminuída.')]),L('Exame obstétrico',0,[B('AU e BCF',1,'AU {AU} cm, BCF {BCF} bpm.')]),L('Conduta',0,[B('Orientações',3,'Orientada sobre sinais de alerta e retorno conforme calendário do pré-natal.')])]),
+C('Adulto',[L('Condições',0,[B('HAS',2,'Hipertensão arterial sistêmica em acompanhamento.'),B('DM',2,'Diabetes mellitus em acompanhamento.')]),L('Conduta',0,[B('Renovação de receita',3,'Realizada renovação de receituário.'),B('Exames',3,'Solicitados exames de rotina.'),B('Retorno',3,'Retorno em {dias} dias.')])]),
+C('Idoso',[L('Funcionalidade',1,[B('Independente',0,'Independente para atividades de vida diária.'),B('Dependência parcial',0,'Dependência parcial para atividades de vida diária.')]),L('Quedas',1,[B('Sem quedas',0,'Nega quedas nos últimos 12 meses.'),B('Queda recente',0,'Refere queda recente.')])])]}};
+let cfg,S={},cur,edit=false;
+try{cfg=JSON.parse(localStorage.getItem('cfg')||'null')}catch(e){}
+cfg=cfg||def();cur=cfg.cats[0]?.id;
+try{const t=performance.getEntriesByType('navigation')[0];if(t&&t.type==='reload')sessionStorage.removeItem('reg');S=JSON.parse(sessionStorage.getItem('reg')||'{}')}catch(e){}
+const sv=()=>{try{sessionStorage.setItem('reg',JSON.stringify(S))}catch(e){}},sc=()=>{try{localStorage.setItem('cfg',JSON.stringify(cfg))}catch(e){}};
+const allB=()=>cfg.cats.flatMap(c=>c.rows.flatMap(r=>r.btns.map(b=>({b,r,c}))));
+const dt=b=>b.text.replace(/\{\w+\}/g,'___');
+const loc=id=>{for(const p in S){const i=S[p].findIndex(x=>x.k==='b'&&x.id===id);if(i>=0)return[p,i]}};
+const drop=id=>{const l=loc(id);if(l)S[l[0]].splice(l[1],1)};
+const part=id=>cfg.parts.some(p=>p.id===id)?id:cfg.parts[0].id;
+function ask(title,fields,del,ok){return new Promise(res=>{const d=document.createElement('dialog');
+d.innerHTML=`<form method="dialog"><h3>${esc(title)}</h3>`+fields.map(f=>`<label>${esc(f.l)}`+(f.t==='area'?`<textarea name="${f.k}" rows="3">${esc(f.v)}</textarea>`:f.t==='sel'?`<select name="${f.k}">`+f.o.map(o=>`<option value="${o[0]}"${o[0]===f.v?' selected':''}>${esc(o[1])}</option>`).join('')+'</select>':f.t==='chk'?` <input type="checkbox" name="${f.k}"${f.v?' checked':''}>`:`<input name="${f.k}" value="${esc(f.v)}">`)+'</label>').join('')+`<div class="act"><button value="ok" class="pri">${ok||'Salvar'}</button>${del?'<button value="del" class="danger">Excluir</button>':''}<button type="button" class="cx">Cancelar</button></div></form>`;
+document.body.append(d);d.querySelector('.cx').onclick=()=>d.close();
+d.onclose=()=>{const r=d.returnValue,fd=new FormData(d.querySelector('form')),o={};fields.forEach(f=>o[f.k]=f.t==='chk'?fd.has(f.k):fd.get(f.k));d.remove();res(r==='ok'?o:r==='del'?'del':null)};d.showModal()})}
+async function fillv(b){let k=0;const f=[],seen={};const tx=b.text.replace(/\{(\w+)\}|___/g,(m,nm)=>{const key=nm||'#'+(++k);if(!seen[key]){seen[key]=1;f.push({k:key,l:nm||'Campo '+k,v:''})}return '\u0001'+key+'\u0001'});
+if(!f.length)return b.text;const o=await ask(b.label,f,0,'Inserir');if(!o)return null;return tx.replace(/\u0001(.+?)\u0001/g,(m,key)=>(o[key]||'').trim()||'___')}
+async function tog(b,r){const l=loc(b.id);if(l){const it=S[l[0]][l[1]];const bs=it.base??dt(b);if(it.text!==bs)it.text=bs;else drop(b.id)}
+else{const tx=await fillv(b);if(tx===null)return;if(r.single)r.btns.forEach(x=>drop(x.id));const p=part(b.part),a=S[p]=S[p]||[],o=allB().map(x=>x.b.id),m=o.indexOf(b.id);let q=0;a.forEach((x,i)=>{if(x.k==='b'&&o.indexOf(x.id)<m)q=i+1});if(q)while(q<a.length&&a[q].k==='f')q++;a.splice(q,0,{k:'b',id:b.id,text:tx,base:tx})}sv();R()}
+function mark(){const m=new Map(allB().map(x=>[x.b.id,x.b]));document.querySelectorAll('.chip[data-id]').forEach(e=>{const b=m.get(e.dataset.id),l=b&&loc(b.id);const it=l&&S[l[0]][l[1]];e.classList.toggle('ed',!!it&&it.text!==(it.base??dt(b)))})}
+function rCats(){const t=$('#tabs');t.innerHTML='';cfg.cats.forEach(c=>mk('chip'+(c.id===cur?' on':''),c.name,()=>{cur=c.id;R()},t));
+if(edit){mk('chip add','+ Categoria',async()=>{const o=await ask('Nova categoria',[{k:'n',l:'Nome',v:''}]);if(o&&o.n.trim()){const c={id:UU(),name:o.n.trim(),rows:[]};cfg.cats.push(c);cur=c.id;sc();R()}},t);
+const c=cfg.cats.find(x=>x.id===cur);if(c)mk('chip add','Editar categoria',async()=>{const o=await ask('Categoria',[{k:'n',l:'Nome',v:c.name}],1);if(o==='del'){c.rows.forEach(r=>r.btns.forEach(b=>drop(b.id)));cfg.cats=cfg.cats.filter(x=>x!==c);cur=cfg.cats[0]?.id;sv()}else if(o&&o.n.trim())c.name=o.n.trim();else return;sc();R()},t)}}
+async function eb(b,r){const o=await ask(b?'Editar botão':'Novo botão',[{k:'l',l:'Rótulo do botão',v:b?b.label:''},{k:'t',t:'area',l:'Frase inserida no registro (use {nome} para campos preenchidos ao clicar no botão)',v:b?b.text:''},{k:'p',t:'sel',l:'Parte do registro',v:b?part(b.part):cfg.parts[0].id,o:cfg.parts.map(p=>[p.id,p.name])}],!!b);
+if(!o)return;if(o==='del'){drop(b.id);r.btns=r.btns.filter(x=>x!==b)}else if(o.l.trim()&&o.t.trim()){if(b){drop(b.id);Object.assign(b,{label:o.l.trim(),text:o.t.trim(),part:o.p})}else r.btns.push({id:UU(),label:o.l.trim(),text:o.t.trim(),part:o.p})}sv();sc();R()}
+function rRows(){const h=$('#rows');h.innerHTML='';if(edit)el('hint',h).textContent='Modo de personalização ativo: clique em um botão para editá-lo, use “+ botão” para criar e “Editar linha” para ajustar a linha.';const c=cfg.cats.find(x=>x.id===cur);if(!c){h.textContent='Nenhuma categoria. Ative Personalizar para criar uma.';return}
+c.rows.forEach(r=>{const d=el('row',h),l=el('lab',d);l.append(r.label+(r.single?' (escolha única)':''));
+if(edit)mk('sm','Editar linha',async()=>{const o=await ask('Linha',[{k:'n',l:'Título da linha',v:r.label},{k:'s',l:'Escolha única (as opções se excluem)',t:'chk',v:r.single}],1);if(o==='del'){r.btns.forEach(b=>drop(b.id));c.rows=c.rows.filter(x=>x!==r)}else if(o){r.label=o.n.trim()||r.label;r.single=o.s}else return;sv();sc();R()},l);
+const w=el('wrap',d);r.btns.forEach(b=>{const e=mk('chip'+(loc(b.id)?' on':''),b.label,()=>edit?eb(b,r):tog(b,r),w);e.dataset.id=b.id;e.title='Ponto no botão indica frase editada; clique para restaurar.';e.onmousedown=v=>v.preventDefault()});
+if(edit)mk('chip add','+ botão',()=>eb(null,r),w)});
+if(edit)mk('chip add','+ Linha',async()=>{const o=await ask('Nova linha',[{k:'n',l:'Título da linha',v:''},{k:'s',l:'Escolha única (as opções se excluem)',t:'chk',v:false}]);if(o&&o.n.trim()){c.rows.push({id:UU(),label:o.n.trim(),single:o.s,btns:[]});sc();R()}},h);mark()}
+function addF(pid,i){const a=S[pid]=S[pid]||[];a.splice(i+1,0,{k:'f',text:''});sv();rReg();const e=document.querySelector(`.b[data-p="${pid}"][data-i="${i+1}"]`);e&&e.focus()}
+async function copy(p,e){const t=(S[p.id]||[]).map(x=>x.text.trim()).filter(Boolean).join(SM[p.sep]).trim();try{await navigator.clipboard.writeText(t)}catch(_){const a=document.createElement('textarea');a.value=t;document.body.append(a);a.select();document.execCommand('copy');a.remove()}e.textContent='Copiado';setTimeout(()=>e.textContent='Copiar',1200)}
+function rReg(){const h=$('#regs');h.innerHTML='';cfg.parts.forEach(p=>{const a=S[p.id]||[],box=el('panel',h),hd=el('hd',box);hd.append(Object.assign(document.createElement('b'),{textContent:p.name}));
+mk('sm','+ texto livre',()=>addF(p.id,a.length-1),hd);const cp=mk('sm pri','Copiar',()=>copy(p,cp),hd);const ar=el('area',box);if(!a.length)ar.dataset.empty=1;
+a.forEach((it,i)=>{const s=document.createElement('span');s.className='b'+(p.sep==='nl'?' nl':'');s.contentEditable='plaintext-only';if(s.contentEditable!=='plaintext-only')s.contentEditable='true';s.textContent=it.text;s.dataset.p=p.id;s.dataset.i=i;
+s.oninput=()=>{it.text=s.textContent;sv();mark()};s.onblur=()=>{if(!it.text.trim()){a.splice(a.indexOf(it),1);sv();R()}};
+s.onpaste=e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'))};ar.append(s);mk('plus','+',()=>addF(p.id,i),ar)})})}
+async function sp(){const f=[];cfg.parts.forEach((p,i)=>f.push({k:'n'+i,l:'Parte '+(i+1)+': nome',v:p.name},{k:'s'+i,l:'Separador entre frases',t:'sel',v:p.sep,o:SEP},{k:'x'+i,l:'Excluir esta parte',t:'chk',v:false}));f.push({k:'add',l:'Adicionar nova parte',t:'chk',v:false});
+const o=await ask('Partes do registro',f);if(!o)return;cfg.parts.forEach((p,i)=>{p.name=o['n'+i].trim()||p.name;p.sep=o['s'+i]});
+let keep=cfg.parts.filter((p,i)=>!o['x'+i]);if(!keep.length)keep=[cfg.parts[0]];cfg.parts.forEach(p=>{if(!keep.includes(p))delete S[p.id]});if(o.add)keep.push({id:UU(),name:'Parte '+(keep.length+1),sep:'sp'});cfg.parts=keep;sv();sc();R()}
+function R(){rCats();rRows();rReg()}
+$('#ed').onclick=e=>{edit=!edit;e.target.classList.toggle('pri',edit);R()};
+$('#cfgP').onclick=sp;$('#clr').onclick=()=>{S={};sv();R()};
+$('#rst').onclick=async()=>{if(await ask('Restaurar a configuração padrão? Categorias e botões personalizados serão removidos.',[])){try{localStorage.removeItem('cfg')}catch(e){}cfg=def();cur=cfg.cats[0].id;S={};sv();R()}};
+R();
+</script></body></html>
